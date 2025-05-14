@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Organizador de Combates</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+  <style>
+    body {
+      background-color: #4c4c4c;
+      color: #1a1a1a;
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    .section-dark {
+      background-color: #1e1e1e;
+      color: #e0e0e0;
+      border-radius: 12px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    }
+
+    .section-dark h2,
+    .section-dark h3 {
+      color: #ffffff;
+    }
+
+    .section-dark input,
+    .section-dark select {
+      background-color: #2c2c2c;
+      border: 1px solid #444;
+      color: #eee;
+    }
+
+    .section-dark input::placeholder {
+      color: #888;
+    }
+
+    .section-dark .card {
+      background-color: #2a2a2a;
+      border: 1px solid #444;
+      color: #e0e0e0;
+    }
+
+    .section-dark .text-muted {
+      color: #aaa !important;
+    }
+
+    .btn {
+      border-radius: 6px;
+    }
+
+    .btn-primary {
+      background-color: #007bff;
+      border-color: #006fe6;
+    }
+
+    .btn-success {
+      background-color: #28a745;
+      border-color: #23923c;
+    }
+
+    .btn-danger {
+      background-color: #dc3545;
+      border-color: #c82333;
+    }
+  </style>
+</head>
+<body>
+  <div class="container section-dark">
+    <h2>Gestión de Peleadores</h2>
+    <form id="fighterForm" class="row g-3">
+      <div class="col-md-2">
+        <input type="text" class="form-control" id="name" placeholder="Nombre" required />
+      </div>
+      <div class="col-md-1">
+        <input type="number" class="form-control" id="weight" placeholder="Peso" required />
+      </div>
+      <div class="col-md-1">
+        <input type="number" class="form-control" id="fights" placeholder="Peleas" required />
+      </div>
+      <div class="col-md-2">
+        <select class="form-select" id="discipline" required>
+          <option value="">Disciplina</option>
+          <option>MMA</option>
+          <option>Kickboxing</option>
+          <option>Boxeo</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <select class="form-select" id="category" required>
+          <option value="">Categoría</option>
+          <option>Amateur</option>
+          <option>SemiPro</option>
+          <option>Pro</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <select class="form-select" id="fighterEvent" required>
+          <option value="">Evento</option>
+        </select>
+      </div>
+      <div class="col-md-1">
+        <button type="submit" class="btn btn-success w-100">+</button>
+      </div>
+    </form>
+
+    <hr />
+    <h3 class="mt-4">Peleadores cargados</h3>
+    <ul id="fighterList" class="list-group list-group-flush"></ul>
+  </div>
+
+  <div class="container section-dark">
+    <h2>Gestión de Eventos</h2>
+    <form id="eventForm" class="row g-3 mb-3">
+      <div class="col-md-6">
+        <input type="text" class="form-control" id="eventName" placeholder="Nombre del evento" required />
+      </div>
+      <div class="col-md-4">
+        <input type="date" class="form-control" id="eventDate" required />
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-primary w-100">Crear evento</button>
+      </div>
+    </form>
+
+    <h3>Eventos disponibles</h3>
+    <select id="eventSelect" class="form-select mb-3"></select>
+  </div>
+
+  <div class="container section-dark">
+    <h2>Emparejamiento Automático</h2>
+    <select id="eventSelectForMatchups" class="form-select mb-3" required>
+      <option value="">Seleccionar evento</option>
+    </select>
+    <button class="btn btn-danger mb-3" onclick="generateMatchups()">Generar Combates</button>
+    <div id="matchups"></div>
+  </div>
+
+  <script>
+    const fighters = [];
+    const events = [];
+    const matchups = [];
+
+    document.getElementById("eventForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      const name = document.getElementById("eventName").value;
+      const date = document.getElementById("eventDate").value;
+      const event = { name, date };
+      events.push(event);
+      renderEvents();
+      this.reset();
+    });
+
+    function renderEvents() {
+      const selects = [
+        document.getElementById("eventSelect"),
+        document.getElementById("eventSelectForMatchups"),
+        document.getElementById("fighterEvent"),
+      ];
+      selects.forEach(select => {
+        select.innerHTML = '<option value="">Seleccionar evento</option>';
+        events.forEach((e, i) => {
+          const option = document.createElement("option");
+          option.value = i;
+          option.textContent = `${e.name} (${e.date})`;
+          select.appendChild(option);
+        });
+      });
+    }
+
+    document.getElementById("fighterForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      const name = document.getElementById("name").value;
+      const weight = parseFloat(document.getElementById("weight").value);
+      const fights = parseInt(document.getElementById("fights").value);
+      const discipline = document.getElementById("discipline").value;
+      const category = document.getElementById("category").value;
+      const eventIndex = document.getElementById("fighterEvent").value;
+
+      if (eventIndex === "") {
+        alert("Debes seleccionar un evento para el peleador.");
+        return;
+      }
+
+      const event = events[eventIndex];
+      fighters.push({ name, weight, fights, discipline, category, event });
+      renderFighters();
+      this.reset();
+    });
+
+    function renderFighters() {
+      const list = document.getElementById("fighterList");
+      list.innerHTML = "";
+      fighters.forEach(f => {
+        const li = document.createElement("li");
+        li.className = "list-group-item bg-transparent border-0 text-light";
+        li.textContent = `${f.name} - ${f.weight}kg - ${f.fights} peleas - ${f.category} - ${f.discipline} - Evento: ${f.event.name}`;
+        list.appendChild(li);
+      });
+    }
+
+    function getWeightBracket(weight) {
+      return Math.floor(weight / 5) * 5;
+    }
+
+    function generateMatchups() {
+      const eventIndex = document.getElementById("eventSelectForMatchups").value;
+      if (eventIndex === "") {
+        alert("Seleccioná un evento.");
+        return;
+      }
+
+      const selectedEvent = events[eventIndex];
+      const eventFighters = fighters.filter(f => f.event.name === selectedEvent.name);
+      const grouped = {};
+      const used = new Set();
+
+      eventFighters.forEach(f => {
+        const bracket = getWeightBracket(f.weight);
+        const key = `${f.discipline}-${f.category}-${bracket}`;
+        if (!grouped[key]) grouped[key] = [];
+        grouped[key].push(f);
+      });
+
+      for (const key in grouped) {
+        const group = grouped[key].sort((a, b) => a.weight - b.weight);
+        for (let i = 0; i < group.length; i++) {
+          if (used.has(group[i])) continue;
+          for (let j = i + 1; j < group.length; j++) {
+            if (used.has(group[j])) continue;
+            const f1 = group[i];
+            const f2 = group[j];
+            if (Math.abs(f1.fights - f2.fights) <= 3) {
+              matchups.push({ f1, f2, event: selectedEvent.name });
+              used.add(f1);
+              used.add(f2);
+              fighters.splice(fighters.indexOf(f1), 1);
+              fighters.splice(fighters.indexOf(f2), 1);
+              break;
+            }
+          }
+        }
+      }
+
+      renderFighters();
+      renderMatchups();
+    }
+
+    function renderMatchups() {
+      const container = document.getElementById("matchups");
+      container.innerHTML = "";
+      if (matchups.length === 0) {
+        container.innerHTML = "<p class='text-danger'>No hay combates asignados.</p>";
+        return;
+      }
+
+      matchups.forEach((p, index) => {
+        const div = document.createElement("div");
+        div.className = "card mb-2 p-3";
+        div.innerHTML = `
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <strong>${p.f1.name}</strong> (${p.f1.weight}kg, ${p.f1.fights} peleas)
+              vs
+              <strong>${p.f2.name}</strong> (${p.f2.weight}kg, ${p.f2.fights} peleas)
+              <span class="text-muted">[${p.f1.category} - ${p.f1.discipline}]</span><br>
+              <span class="badge bg-info text-dark">Evento: ${p.event}</span>
+            </div>
+            <button class="btn btn-sm btn-outline-danger" onclick="removeMatchup(${index})">Eliminar</button>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function removeMatchup(index) {
+      const { f1, f2 } = matchups[index];
+      fighters.push(f1, f2);
+      matchups.splice(index, 1);
+      renderFighters();
+      renderMatchups();
+    }
+  </script>
+</body>
+</html>
